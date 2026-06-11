@@ -43,6 +43,7 @@ extern qboolean Wampa_CheckDropVictim( gentity_t *self, qboolean excludeMe );
 extern	cvar_t	*g_debugDamage;
 extern qboolean	stop_icarus;
 extern cvar_t	*g_dismemberment;
+extern cvar_t* g_explosivedismemberment;
 extern cvar_t	*g_saberRealisticCombat;
 extern cvar_t	*g_saberPickuppableDroppedSabers;
 extern cvar_t		*g_timescale;
@@ -2349,6 +2350,125 @@ qboolean G_GetRootSurfNameWithVariant( gentity_t *ent, const char *rootSurfName,
 }
 
 extern qboolean G_StandardHumanoid( gentity_t *self );
+
+// ============================================================================
+// G_DoExplosionDismemberment
+// ============================================================================
+
+// Per-limb data table. Each row is everything G_Dismember needs for one limb.
+// stubSurf == NULL signals the head, which uses hardcoded cap names instead
+// of the variant lookup that arms and legs need.
+struct explosionLimb_t
+{
+	const char* limbBone;
+	const char* rotateBone;
+	const char* limbSurf;		// surface name (variant lookup key)
+	const char* stubSurf;		// parent surface name (NULL = head)
+	const char* limbTagName;
+	const char* stubTagName;
+	const char* hardLimbCap;	// only used when stubSurf == NULL
+	const char* hardStubCap;	// -- ditto (head & waist requires this)
+	int			anim;
+	int			hitLoc;
+	float		limbRollBase;
+	float		limbPitchBase;
+};
+static const explosionLimb_t s_explosionLimbs[] =
+{
+	{ "rhumerus", "rradius", "r_arm", "torso", "*r_arm_cap_torso", "*torso_cap_r_arm", NULL,            NULL,             BOTH_DISMEMBER_RARM,   HL_ARM_RT, 0,  0  },
+	{ "lhumerus", "lradius", "l_arm", "torso", "*l_arm_cap_torso", "*torso_cap_l_arm", NULL,            NULL,             BOTH_DISMEMBER_LARM,   HL_ARM_LT, 0,  0  },
+	{ "rtibia",   "rtalus",  "r_leg", "hips",  "*r_leg_cap_hips",  "*hips_cap_r_leg",  NULL,            NULL,             BOTH_DISMEMBER_RLEG,   HL_LEG_RT, 0,  0  },
+	{ "ltibia",   "ltalus",  "l_leg", "hips",  "*l_leg_cap_hips",  "*hips_cap_l_leg",  NULL,            NULL,             BOTH_DISMEMBER_LLEG,   HL_LEG_LT, 0,  0  },
+	{ "cervical",  "cranium", "head",  NULL,    "*head_cap_torso",  "*torso_cap_head",  "head_cap_torso","torso_cap_head", BOTH_DISMEMBER_HEAD1,  HL_HEAD,  -1, -1  },
+	{ "pelvis", "thoracic",  "torso", NULL,    "*torso_cap_hips",  "*hips_cap_torso",  "torso_cap_hips","hips_cap_torso", BOTH_DISMEMBER_TORSO1, HL_WAIST,  0,  0  },
+};
+
+static const int NUM_EXPLOSION_LIMBS = sizeof(s_explosionLimbs) / sizeof(s_explosionLimbs[0]);
+
+qboolean G_DoExplosionDismemberment(gentity_t* self, vec3_t point, int mod, int damage)
+{
+	//gi.Printf("DEBUG: G_DoExplosionDismemberment entered\n");
+	// -- make sure this function fires when it's supposed to...
+
+	if (!G_StandardHumanoid(self))
+	{
+		return qfalse;
+	}
+
+	// Same local variable block that G_DoDismemberment uses — 
+	// these get repopulated on every iteration
+	char		limbName[MAX_QPATH];
+	char		stubName[MAX_QPATH];
+	char		limbCapName[MAX_QPATH];
+	char		stubCapName[MAX_QPATH];
+	qboolean	dismemberedAny = qfalse;
+
+	for (int i = 0; i < NUM_EXPLOSION_LIMBS; i++)
+	{
+		const explosionLimb_t& limb = s_explosionLimbs[i];
+
+		if (limb.stubSurf)
+		{
+			// Arms and legs: surface names depend on model variant
+			G_GetRootSurfNameWithVariant(self, limb.limbSurf, limbName, sizeof(limbName));
+			G_GetRootSurfNameWithVariant(self, limb.stubSurf, stubName, sizeof(stubName));
+			Com_sprintf(limbCapName, sizeof(limbCapName), "%s_cap_%s", limbName, limb.stubSurf);
+			Com_sprintf(stubCapName, sizeof(stubCapName), "%s_cap_%s", stubName, limb.limbSurf);
+		}
+		else
+		{
+			// Head & waist: no variants, hardcoded cap names
+			Q_strncpyz(limbName, limb.limbSurf, sizeof(limbName));
+			Q_strncpyz(limbCapName, limb.hardLimbCap, sizeof(limbCapName));
+			Q_strncpyz(stubCapName, limb.hardStubCap, sizeof(stubCapName));
+		}
+
+		// scale dismemberment probability/quantity by damage
+		// -- UNLESS our cvar is 0, then just dismember the fuck out of them
+		// default should be 125.0f
+		if (g_explosivedismemberment->value > 0)
+		{
+			float intensity = (float)damage / g_explosivedismemberment->value;
+			if (intensity > 1.0f) intensity = 1.0f;
+
+			float weight = 1.0f;
+			if (limb.hitLoc == HL_HEAD) weight = 0.6f;
+			if (limb.hitLoc == HL_WAIST) weight = 0.25f;
+			if (limb.hitLoc == HL_LEG_RT || limb.hitLoc == HL_LEG_LT) weight = 0.7f;
+
+			if (Q_flrand(0.0f, 1.0f) > intensity * weight)
+			{
+				continue; // this limb survives
+			}
+		}
+		
+		// sever the limbs — G_Dismember copies the G2 instance, sets the
+		// root surface on the copy to show only this branch, spawns it as a
+		// physics entity, and defers the surface hiding on the original to cgame.
+		// if it fails (limb already gone, spawned in solid, etc.) we keep going.
+		if (G_Dismember(self, point, limb.limbBone, limb.rotateBone, limbName,
+			limbCapName, stubCapName, limb.limbTagName, limb.stubTagName,
+			limb.anim, limb.limbRollBase, limb.limbPitchBase,
+			damage, limb.hitLoc))
+		{
+			dismemberedAny = qtrue;
+			gi.G2API_SetSurfaceOnOff(&self->ghoul2[self->playerModel], limbName, 0x00000100);
+			gi.G2API_SetSurfaceOnOff(&self->ghoul2[self->playerModel], stubCapName, 0);
+		}
+	}
+
+	//if somehow we didn't get any explosive severance on an explosion kill,
+	// -- we'll guarantee at least one limb
+	if (!dismemberedAny)
+	{
+		// Guarantee at least one limb on an explosion kill
+		int pick = Q_irand(0, NUM_EXPLOSION_LIMBS - 2); // exclude torso split from fallback
+		// ... run G_Dismember for s_explosionLimbs[pick]
+	}
+
+	return dismemberedAny;
+}
+
 qboolean G_DoDismemberment( gentity_t *self, vec3_t point, int mod, int damage, int hitLoc, qboolean force = qfalse )
 {
 //extern cvar_t	*g_iscensored;
@@ -3613,6 +3733,28 @@ int G_CheckLedgeDive( gentity_t *self, float checkDist, const vec3_t checkVel, q
 	return cliff_fall;
 }
 
+static qboolean G_IsExplosionMOD(int meansOfDeath)
+{
+	switch (meansOfDeath)
+	{
+	case MOD_EXPLOSIVE:
+	case MOD_EXPLOSIVE_SPLASH:
+	case MOD_REPEATER_ALT:
+	case MOD_FLECHETTE_ALT:
+	case MOD_ROCKET:
+	case MOD_ROCKET_ALT:
+	case MOD_CONC:
+	case MOD_THERMAL:
+	case MOD_THERMAL_ALT:
+	case MOD_DETPACK:
+	case MOD_LASERTRIP:
+	case MOD_LASERTRIP_ALT:
+		return qtrue;
+	default:
+		return qfalse;
+	}
+}
+
 /*
 ==================
 player_die
@@ -3631,6 +3773,8 @@ extern void Wampa_DropVictim( gentity_t *self );
 extern void WP_StopForceHealEffects( gentity_t *self );
 void player_die( gentity_t *self, gentity_t *inflictor, gentity_t *attacker, int damage, int meansOfDeath, int dflags, int hitLoc )
 {
+	//gi.Printf("DEBUG: player_die called, MOD=%d\n", meansOfDeath);
+	// -- player_die seems to be called every time a dismemberment event happens, too.
 	int			anim;
 	int			contents;
 	qboolean	deathScript = qfalse;
@@ -4635,14 +4779,24 @@ extern void RunEmplacedWeapon( gentity_t *ent, usercmd_t **ucmd );
 		}
 	}
 
+
+	//gi.Printf("DEBUG: player_die - meansOfDeath=%d, dflags=%d\n", meansOfDeath, dflags);
+	if (G_IsExplosionMOD(meansOfDeath) && g_dismemberment->integer)
+	{
+		//gi.Printf("DEBUG: explosion path hit, calling G_DoExplosionDismemberment\n");
+		G_DoExplosionDismemberment(self, self->pos1, meansOfDeath, damage);
+	}
 	//do any dismemberment if there's any to do...
-	if ( (dflags&DAMAGE_DISMEMBER)
-		&& G_DoDismemberment( self, self->pos1, meansOfDeath, damage, hitLoc )
-		&& !specialAnim )
-	{//we did dismemberment and our death anim is okay to override
-		if ( hitLoc == HL_HAND_RT && self->locationDamage[hitLoc] >= Q3_INFINITE && cliff_fall != 2 && self->client->ps.groundEntityNum != ENTITYNUM_NONE )
-		{//just lost our right hand and we're on the ground, use the special anim
-			NPC_SetAnim( self, SETANIM_BOTH, BOTH_RIGHTHANDCHOPPEDOFF, SETANIM_FLAG_OVERRIDE|SETANIM_FLAG_HOLD );
+	if ((dflags & DAMAGE_DISMEMBER))
+	{
+		if (G_DoDismemberment(self, self->pos1, meansOfDeath, damage, hitLoc)
+			&& !specialAnim)
+		{
+			//we did dismemberment and our death anim is okay to override
+			if (hitLoc == HL_HAND_RT && self->locationDamage[hitLoc] >= Q3_INFINITE && cliff_fall != 2 && self->client->ps.groundEntityNum != ENTITYNUM_NONE)
+			{//just lost our right hand and we're on the ground, use the special anim
+				NPC_SetAnim(self, SETANIM_BOTH, BOTH_RIGHTHANDCHOPPEDOFF, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
+			}
 		}
 	}
 
