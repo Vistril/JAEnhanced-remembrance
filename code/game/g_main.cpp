@@ -156,6 +156,7 @@ cvar_t	*g_developer;
 cvar_t	*g_timescale;
 cvar_t	*g_knockback;
 cvar_t	*g_dismemberment;
+cvar_t* g_explosivedismemberment;
 cvar_t	*g_corpseRemovalTime;
 
 cvar_t	*g_synchSplitAnims;
@@ -656,8 +657,10 @@ void G_InitCvars( void ) {
 	g_spskill = gi.cvar ("g_spskill", "0", CVAR_ARCHIVE | CVAR_SAVEGAME|CVAR_NORESTART);
 	g_knockback = gi.cvar( "g_knockback", "1000", CVAR_CHEAT );
 	g_dismemberment = gi.cvar ( "g_dismemberment", "3", CVAR_ARCHIVE );//0 = none, 1 = arms and hands, 2 = legs, 3 = waist and head
-	// for now I'm making default 10 seconds
-	g_corpseRemovalTime = gi.cvar ( "g_corpseRemovalTime", "10", CVAR_ARCHIVE );//number of seconds bodies stick around for, at least... 0 = never go away
+	g_explosivedismemberment = gi.cvar("g_explosivedismemberment", "125", CVAR_ARCHIVE); //0 = everything, 125 = probability math-based dismemberment
+	// -- but this is the FLOOR in which enemies & will react to projectiles, it could vary much greater than 650ms
+	g_corpseRemovalTime = gi.cvar ( "g_corpseRemovalTime", "30", CVAR_ARCHIVE );//number of seconds bodies stick around for, at least... 0 = never go away
+	// -- for now I'm making default 30 seconds
 	g_synchSplitAnims = gi.cvar ( "g_synchSplitAnims", "1", 0 );
 #ifndef FINAL_BUILD
 	g_AnimWarning = gi.cvar ( "g_AnimWarning", "1", 0 );
