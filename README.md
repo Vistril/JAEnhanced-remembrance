@@ -14,6 +14,8 @@ This is built off of JAEnhanced, you should look at that repository's README.md 
 
 # Planned Balance Changes
 - Allow enemy Reborn/Sith to slowly approach you instead of just staring at you and doing nothing
+- Grans/TD wielders to use impact-explosive TDs at closer ranges
+- Bowcaster wielders to alt-fire
 - Perhaps allow certain E-11 wielders to fire upon you from very far away
 - Perhaps allow gun wielding enemies to climb atop boxes or structures if it's short enough and do it recursively since several maps have interesting non-force-user traversable structures
 - Restore Jedi Outcast's more sophisticated ST_Commander behavior
