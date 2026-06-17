@@ -157,6 +157,8 @@ cvar_t	*g_timescale;
 cvar_t	*g_knockback;
 cvar_t	*g_dismemberment;
 cvar_t* g_explosivedismemberment;
+cvar_t* g_playerForcePushDelayMS; //defualt should be 650, it's now adjustable for debug reasons
+cvar_t* g_enemyForcePushDelayMS; //defualt should be 650, it's now adjustable for debug reasons
 cvar_t	*g_corpseRemovalTime;
 
 cvar_t	*g_synchSplitAnims;
@@ -639,9 +641,9 @@ G_InitCvars
 */
 void G_InitCvars( void ) {
 	// don't override the cheat state set by the system
-	g_cheats = gi.cvar ("helpUsObi", "", 0);
-	g_developer = gi.cvar ("developer", "", 0);
-
+	g_cheats = gi.cvar ("helpUsObi", "1", 1);
+	g_developer = gi.cvar ("developer", "1", 1);
+	
 	// noset vars
 	gi.cvar( "gamename", GAMEVERSION , CVAR_SERVERINFO | CVAR_ROM );
 	gi.cvar( "gamedate", SOURCE_DATE , CVAR_ROM );
@@ -654,13 +656,15 @@ void G_InitCvars( void ) {
 	g_gravity = gi.cvar( "g_gravity", "800", CVAR_SAVEGAME|CVAR_ROM );
 	g_stepSlideFix = gi.cvar( "g_stepSlideFix", "1", CVAR_ARCHIVE );
 	g_sex = gi.cvar ("sex", "f", CVAR_USERINFO | CVAR_ARCHIVE|CVAR_SAVEGAME|CVAR_NORESTART );
-	g_spskill = gi.cvar ("g_spskill", "0", CVAR_ARCHIVE | CVAR_SAVEGAME|CVAR_NORESTART);
+	g_spskill = gi.cvar ("g_spskill", "22", CVAR_ARCHIVE | CVAR_SAVEGAME|CVAR_NORESTART);
 	g_knockback = gi.cvar( "g_knockback", "1000", CVAR_CHEAT );
 	g_dismemberment = gi.cvar ( "g_dismemberment", "3", CVAR_ARCHIVE );//0 = none, 1 = arms and hands, 2 = legs, 3 = waist and head
 	g_explosivedismemberment = gi.cvar("g_explosivedismemberment", "125", CVAR_ARCHIVE); //0 = everything, 125 = probability math-based dismemberment
+	g_playerForcePushDelayMS = gi.cvar("g_playerForcePushDelayMS", "650", CVAR_ARCHIVE); //delay in ms default 650ms
+	g_enemyForcePushDelayMS = gi.cvar("g_enemyForcePushDelayMS", "650", CVAR_ARCHIVE); //delay in ms default 650ms
 	// -- but this is the FLOOR in which enemies & will react to projectiles, it could vary much greater than 650ms
-	g_corpseRemovalTime = gi.cvar ( "g_corpseRemovalTime", "30", CVAR_ARCHIVE );//number of seconds bodies stick around for, at least... 0 = never go away
-	// -- for now I'm making default 30 seconds
+	g_corpseRemovalTime = gi.cvar ( "g_corpseRemovalTime", "10", CVAR_ARCHIVE );//number of seconds bodies stick around for, at least... 0 = never go away
+	// -- for now I'm making default 10 seconds
 	g_synchSplitAnims = gi.cvar ( "g_synchSplitAnims", "1", 0 );
 #ifndef FINAL_BUILD
 	g_AnimWarning = gi.cvar ( "g_AnimWarning", "1", 0 );
