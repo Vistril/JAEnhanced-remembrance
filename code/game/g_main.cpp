@@ -641,8 +641,8 @@ G_InitCvars
 */
 void G_InitCvars( void ) {
 	// don't override the cheat state set by the system
-	g_cheats = gi.cvar ("helpUsObi", "1", 1);
-	g_developer = gi.cvar ("developer", "1", 1);
+	g_cheats = gi.cvar ("helpUsObi", "", 1);
+	g_developer = gi.cvar ("developer", "", 1);
 	
 	// noset vars
 	gi.cvar( "gamename", GAMEVERSION , CVAR_SERVERINFO | CVAR_ROM );
@@ -656,7 +656,7 @@ void G_InitCvars( void ) {
 	g_gravity = gi.cvar( "g_gravity", "800", CVAR_SAVEGAME|CVAR_ROM );
 	g_stepSlideFix = gi.cvar( "g_stepSlideFix", "1", CVAR_ARCHIVE );
 	g_sex = gi.cvar ("sex", "f", CVAR_USERINFO | CVAR_ARCHIVE|CVAR_SAVEGAME|CVAR_NORESTART );
-	g_spskill = gi.cvar ("g_spskill", "22", CVAR_ARCHIVE | CVAR_SAVEGAME|CVAR_NORESTART);
+	g_spskill = gi.cvar ("g_spskill", "", CVAR_ARCHIVE | CVAR_SAVEGAME|CVAR_NORESTART);
 	g_knockback = gi.cvar( "g_knockback", "1000", CVAR_CHEAT );
 	g_dismemberment = gi.cvar ( "g_dismemberment", "3", CVAR_ARCHIVE );//0 = none, 1 = arms and hands, 2 = legs, 3 = waist and head
 	g_explosivedismemberment = gi.cvar("g_explosivedismemberment", "125", CVAR_ARCHIVE); //0 = everything, 125 = probability math-based dismemberment
