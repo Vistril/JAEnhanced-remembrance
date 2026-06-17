@@ -821,22 +821,22 @@ extern bool WP_DoingMoronicForcedAnimationForForcePowers(gentity_t *ent);
 			{//Jedi cannot block shots from behind!
 				int blockChance = 0;
 				switch ( other->owner->client->ps.forcePowerLevel[FP_SABER_DEFENSE] )
-				{//level 1 reflects 50% of the time, level 2 reflects 75% of the time
+				{
 				case FORCE_LEVEL_3:
-					blockChance = 10;
+					blockChance = Q_irand(57, 93); //at LEAST 7% failure rate. can be up to 43%
 					break;
 				case FORCE_LEVEL_2:
-					blockChance = 3;
+					blockChance = Q_irand(33, 57); //at LEAST 43% failure rate. Can be up to 61%.
 					break;
 				case FORCE_LEVEL_1:
-					blockChance = 1;
+					blockChance = Q_irand(10, 33); //at LEAST 67% failure rate. Can be up to 77%
 					break;
 				}
 				if ( blockChance && (other->owner->client->ps.forcePowersActive&(1<<FP_SPEED)) )
 				{//in in force speed, better chance of deflecting the shot
 					blockChance += other->owner->client->ps.forcePowerLevel[FP_SPEED]*2;
 				}
-				if ( Q_irand( 0, blockChance ) )
+				if ( Q_irand(1, 100) <= blockChance ) //do we need to block? level rand determines this
 				{
 					VectorSubtract(ent->currentOrigin, other->currentOrigin, diff);
 					VectorNormalize(diff);
