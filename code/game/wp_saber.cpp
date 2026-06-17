@@ -62,6 +62,8 @@ extern cvar_t	*g_saberRestrictForce;
 extern cvar_t	*g_saberPickuppableDroppedSabers;
 extern cvar_t	*debug_subdivision;
 extern cvar_t	*g_forceRegenTime;
+extern cvar_t* g_playerForcePushDelayMS; //modification
+extern cvar_t* g_enemyForcePushDelayMS;
 
 
 extern qboolean WP_SaberBladeUseSecondBladeStyle( saberInfo_t *saber, int bladeNum );
@@ -9363,7 +9365,7 @@ void ForceThrow( gentity_t *self, qboolean pull, qboolean fake )
 		//make sure this plays and that you cannot press fire for about 1 second after this
 		anim = BOTH_FORCEPUSH;
 		soundIndex = G_SoundIndex( "sound/weapons/force/push.wav" );
-		hold = 650;
+		hold = 650; //might be redundant
 	}
 
 	int parts = SETANIM_TORSO;
@@ -10337,12 +10339,24 @@ void ForceThrow( gentity_t *self, qboolean pull, qboolean fake )
 		if ( self->NPC )
 		{//NPCs can push more often
 			//FIXME: vary by rank and game skill?
-			self->client->ps.forcePowerDebounce[FP_PUSH] = level.time + 200;
+			//self->client->ps.forcePowerDebounce[FP_PUSH] = level.time + 200;
+			//g_enemyForcePushReflectMS
+			//enemy reflect time = 650ms (torsoAnimTimer value) + [150, 750ms].
+			//Meaning whoever has the advantage between the player and the enemy is *still random*,
+			//but that's better than always losing.
+			//Faster force pushes don't really help you, there's still some anims blocking you from
+			//pushing super fast. So we're going to nerf the Reborn's ability to push every (at least) 200ms without fail.
+			self->client->ps.forcePowerDebounce[FP_PUSH] = level.time + g_enemyForcePushDelayMS->integer + Q_irand(150, 750);
+			//Enemy Jedi will now have a varying delay between force push reactions -- 800ms to 1400ms.
 		}
 		else
 		{
-			self->client->ps.forcePowerDebounce[FP_PUSH] = level.time + self->client->ps.torsoAnimTimer + 500;
-		}
+			//self->client->ps.forcePowerDebounce[FP_PUSH] = level.time + self->client->ps.torsoAnimTimer + 500;
+			self->client->ps.forcePowerDebounce[FP_PUSH] = level.time + g_playerForcePushDelayMS->integer + 500; //delay in ms, default 650ms.
+		}	//This essentially is unchanged, it's just now pulling 650ms as a default from
+			//g_playerForcePushDelayMS so the cvar is adjustable for fun's sake.'
+			//We believe in modularity, here.
+			//Now we can win Rocket Dodgeball against high-level Enemy Jedi.
 	}
 }
 
