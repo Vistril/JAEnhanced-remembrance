@@ -214,6 +214,7 @@ extern void G_DrainPowerForSpecialMove( gentity_t *self, forcePowers_t fp, int c
 extern int G_CostForSpecialMove( int cost, qboolean kataMove = qfalse );
 extern gentity_t *G_DropSaberItem( const char *saberType, saber_colors_t saberColor, vec3_t saberPos, vec3_t saberVel, vec3_t saberAngles, gentity_t *copySaber = NULL );
 
+
 typedef enum
 {
 	EVASION_NONE = 0,
