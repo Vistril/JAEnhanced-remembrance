@@ -18,7 +18,7 @@ This is built off of JAEnhanced, you should look at that repository's README.md 
 - Perhaps allow gun wielding enemies to climb atop boxes or structures if it's short enough and do it recursively since several maps have interesting non-force-user traversable structures
 - Restore Jedi Outcast's more sophisticated ST_Commander behavior
 - Make jetpack stormies & hazardtrooper with concussion rifle guys less annoying (not sure how to do this yet, we'll see if this holds up)
-- Possibly give some Stormtroopers 1 or 2 thermal detonators (grenades) and use them if they're in a combat point in which it makes sense to do so from (We'll look at what the TD-wielding Gran does when it comes to AI in code). Luckily TD's make a pretty distinctive sound so I am not so worried about physical system feedback when it comes to this planned change
+- Possibly give some Stormtroopers 1 or 2 thermal detonators (grenades) and use them if they're in a combat point in which it makes sense to do so from (We'll look at what the TD-wielding Gran does when it comes to AI in code). Luckily TD's make a pretty distinctive sound so I am not so worried about physical system feedback when it comes to this planned change (Original idea was from "Seargent Stacker", thank you!)
 - Weapon and sniper shot dodge chance according to g_spskill
 - A 5th difficulty setting called "Remembrance", should be on 8-12 g_spskill (this cvar seems to scale indefinitely, so that's cool, but we'll also add Remembrance-specific behaviors later. higher g_spskill also doesn't seem to affect enemy AI_Jedi too much from what I can tell from playtesting)
 - And more to come...
