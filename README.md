@@ -66,4 +66,6 @@ Leads:
 
 
 
-
+# This software (JAEnhanced: Remembrance) was independently created by a single individual in Salt Lake City, UT. 
+# This software is not intended for sale.
+# If you paid for this software, you have been scammed.
